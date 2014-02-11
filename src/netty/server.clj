@@ -44,6 +44,16 @@
    :connect-timeout-ms 100
    :tcp-no-delay true})
 
+(defn set-options!
+  [bootstrap options]
+  (doseq [[opt val] options]
+    (.option bootstrap (get server-options opt) val)))
+
+(defn set-child-options!
+  [bootstrap options]
+  (doseq [[opt val] child-options]
+    (.childOption bootstrap (get server-options opt) val)))
+
 (defn bootstrap
   ([] (bootstrap 8080))
   ([port] (bootstrap port {}))
@@ -55,14 +65,15 @@
          (let [b (doto (ServerBootstrap.)
                    (.group boss-group worker-group)
                    (.channel NioServerSocketChannel)
-                   (.localAddress (int port)))
+                   (.localAddress (int port))
+                   (set-options! options)
+                   (set-child-options! child-options))
                f (.sync (.bind b))
                channel (.channel f)]
            (.sync (.closeFuture channel)))
          (finally
            (.shutdownGracefully boss-group)
            (.shutdownGracefully worker-group)
-
            (.sync (.terminationFuture boss-group))
            (.sync (.terminationFuture worker-group)))))))
 
