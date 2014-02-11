@@ -55,9 +55,17 @@
     (.option bootstrap (get server-options opt) val)))
 
 (defn set-child-options!
-  [bootstrap options]
+  [bootstrap child-options]
   (doseq [[opt val] child-options]
     (.childOption bootstrap (get server-options opt) val)))
+
+(defn executor
+  [type options]
+  (case type
+    :global (io.netty.util.concurrent.GlobalEventExecutor/INSTANCE)
+    :immediate (io.netty.util.concurrent.ImmediateEventExecutor/INSTANCE)
+    :default (io.netty.util.concurrent.DefaultEventExecutor.)
+    :cached (netty/cached-thread-executor options)))
 
 (defn bootstrap
   ([] (bootstrap 8080))
@@ -67,7 +75,8 @@
      (let [boss-group (NioEventLoopGroup.)
            worker-group (NioEventLoopGroup.)
            options (merge default-server-options options)
-           child-options (merge default-server-child-options child-options)]
+           child-options (merge default-server-child-options child-options)
+           channel-group (DefaultChannelGroup. (executor :immediate options))]
        (try
          (let [b (doto (ServerBootstrap.)
                    (.group boss-group worker-group)
