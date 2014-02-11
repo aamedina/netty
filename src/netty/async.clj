@@ -34,19 +34,3 @@
     clojure.lang.IFn
     (invoke [pipeline arg]
       (f arg))))
-
-(declare decrement-until-zero)
-
-(def check-for-zero
-  (pipeline
-    (fn [n]
-      (if (zero? n)
-        :success!
-        (redirect decrement-until-zero n)))))
-
-(def decrement-until-zero
-  (pipeline
-    (fn [n]
-      (redirect check-for-zero (dec n)))))
-
-(decrement-until-zero 1e6)

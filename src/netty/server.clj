@@ -68,30 +68,28 @@
     :cached (netty/cached-thread-executor options)))
 
 (defn bootstrap
-  ([] (bootstrap 8080))
-  ([port] (bootstrap port {}))
-  ([port options] (bootstrap port options {}))
-  ([port options child-options]
-     (let [boss-group (NioEventLoopGroup.)
-           worker-group (NioEventLoopGroup.)
-           options (merge default-server-options options)
-           child-options (merge default-server-child-options child-options)
-           channel-group (DefaultChannelGroup. (executor :immediate options))]
-       (try
-         (let [b (doto (ServerBootstrap.)
-                   (.group boss-group worker-group)
-                   (.channel NioServerSocketChannel)
-                   (.localAddress (int port))
-                   (set-options! options)
-                   (set-child-options! child-options))
-               f (.sync (.bind b))
-               channel (.channel f)]
-           (.sync (.closeFuture channel)))
-         (finally
-           (.shutdownGracefully boss-group)
-           (.shutdownGracefully worker-group)
-           (.sync (.terminationFuture boss-group))
-           (.sync (.terminationFuture worker-group)))))))
+  [handler & {:keys [port options child-options] :or {port 8080}}]
+  (let [boss-group (NioEventLoopGroup.)
+        worker-group (NioEventLoopGroup.)
+        options (merge default-server-options options)
+        child-options (merge default-server-child-options child-options)
+        channel-group (DefaultChannelGroup. (executor :immediate options))]
+    (try
+      (let [b (doto (ServerBootstrap.)
+                (.group boss-group worker-group)
+                (.channel NioServerSocketChannel)
+                (.localAddress (int port))
+                (.childHandler handler)
+                (set-options! options)
+                (set-child-options! child-options))
+            f (.sync (.bind b))
+            channel (.channel f)]
+        (.sync (.closeFuture channel)))
+      (finally
+        (.shutdownGracefully boss-group)
+        (.shutdownGracefully worker-group)
+        (.sync (.terminationFuture boss-group))
+        (.sync (.terminationFuture worker-group))))))
 
 (defn start-server
   [server-name pipeline-generator {:keys [port host] :as options}]
