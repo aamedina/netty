@@ -1,30 +1,48 @@
 (ns netty.channel
   (:refer-clojure :exclude [read flush])
-  (:import [io.netty.channel Channel ChannelHandler ChannelHandlerAdapter]))
+  (:require [clojure.core.async :as a :refer [go go-loop <! >! put! chan]])
+  (:import [io.netty.channel
+            ChannelHandlerAdapter
+            ChannelHandlerContext
+            ChannelInitializer]
+           [io.netty.channel.socket SocketChannel]))
 
-(defprotocol IBindable
-  (bind [_ ctx local-address promise]))
+(defn channel-handler
+  [port]
+  (proxy [ChannelHandlerAdapter] []
+    (channelActive [^ChannelHandlerContext ctx]
+      (put! port {:event :channel-active
+                  :ctx ctx
+                  :channel (.channel ctx)})
+      (proxy-super channelActive ctx))
+    (channelInactive [^ChannelHandlerContext ctx]
+      (put! port {:event :channel-inactive
+                  :ctx ctx
+                  :channel (.channel ctx)})
+      (proxy-super channelInactive ctx))
+    (channelRead [^ChannelHandlerContext ctx ^Object msg]
+      (put! port {:event :channel-read
+                  :ctx ctx
+                  :msg msg
+                  :channel (.channel ctx)})
+      (proxy-super channelRead ctx))
+    (exceptionCaught [^ChannelHandlerContext ctx ^Throwable cause]
+      (put! port cause)
+      (proxy-super exceptionCaught ctx))
+    (handlerAdded [^ChannelHandlerContext ctx]
+      (put! port {:event :handler-added
+                  :ctx ctx
+                  :channel (.channel ctx)})
+      (proxy-super handledAdded ctx))
+    (handlerRemoved [^ChannelHandlerContext ctx]
+      (put! port {:event :handler-removed
+                  :ctx ctx
+                  :channel (.channel ctx)})
+      (proxy-super handledRemoved ctx))
+    (isSharable [] true)))
 
-(defprotocol IConnectable
-  (connect [_ ctx remote-address local-address promise])
-  (disconnect [_ ctx remote-address local-address promise]))
-
-(defprotocol IWriteable
-  (write [_ ctx message promise])
-  (flush [_ ctx])
-  (write-and-flush [_ ctx message promise]))
-
-(defprotocol IReadable
-  (read [_ ctx]))
-
-(defprotocol IChannelRead
-  (channel-read [_ ctx]))
-
-(defprotocol IChannelActive
-  (channel-active [_ ctx])
-  (channel-inactive [_ ctx]))
-
-(defprotocol IChannelRegistered
-  (channel-registered [_ ctx])
-  (channel-unregistered [_ ctx]))
-
+(defn channel-initializer
+  [port]
+  (proxy [ChannelInitializer] []
+    (initChannel [^SocketChannel ch]
+      (put! port {:event :init-channel :channel ch}))))

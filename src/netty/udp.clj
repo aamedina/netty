@@ -1,9 +1,22 @@
 (ns netty.udp
-  (:require [netty.core :as netty])
+  (:require [netty.core :as netty]
+            [netty.channel :as channel]
+            [netty.format :as fmt]
+            [clojure.core.async :as a :refer [go go-loop <! >! put! chan]])
   (:import [io.netty.handler.codec.serialization
             ClassResolvers
             ObjectEncoder
-            ObjectDecoder]))
+            ObjectDecoder]
+           [io.netty.channel.socket.nio NioDatagramChannel]
+           [io.netty.bootstrap Bootstrap]))
+
+(defn udp-message-handler
+  [channel {:keys [auto-encode?] :as options}]
+  (let [encoder (fmt/encoder options)
+        decoder (fmt/decoder options)
+        port (chan 1)
+        handler (channel/channel-handler port)]
+    ))
 
 (defn class-resolver
   ([] (class-resolver :cache-disabled))
@@ -22,8 +35,10 @@
          (ClassResolvers/weakCachingConcurrentResolver class-loader)))))
 
 (defn create-udp-socket
-  [socket-name pipeline-generator options]
-  )
+  [socket-name pipeline-generator {:keys [buf-port size broadcast?]
+                                   :or {port 0 buf-size 16384} :as options}]
+  (let [bootstrap (Bootstrap.)]
+    ))
 
 (defn udp-socket
   ([] (udp-socket nil))
@@ -48,5 +63,3 @@
            :encoder encoder
            :decoder decoder))
         (assoc options :auto-encode? false)))))
-
-

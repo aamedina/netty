@@ -36,3 +36,9 @@
                                (when (identical? future __future)
                                  (put! port __future)))))
       port)))
+
+(defn encoder
+  [options])
+
+(defn decoder
+  [options])
