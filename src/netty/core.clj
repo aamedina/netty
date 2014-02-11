@@ -1,6 +1,5 @@
 (ns netty.core
-  (:require [netty.udp :as udp]
-            [netty.server :as server]
+  (:require [netty.server :as server]
             [netty.client :as client]
             [netty.redis :as redis :refer [conn wcar]]))
 
