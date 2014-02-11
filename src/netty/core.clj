@@ -6,7 +6,14 @@
              :as a :refer [<! >! go chan put! take! go-loop]])
   (:import [java.util.concurrent ThreadFactory Executor Executors]
            [java.net InetSocketAddress InetAddress]
-           [io.netty.channel Channel ChannelHandler ChannelHandlerAdapter]))
+           [io.netty.channel.socket.nio NioServerSocketChannel]
+           [io.netty.channel
+            Channel
+            ChannelHandler
+            ChannelHandlerAdapter
+            ChannelInitializer
+            ChannelOption
+            ChannelPipeline]))
 
 (defprotocol NetworkAddress
   (port [_])
@@ -20,6 +27,7 @@
     (.getHostName inet-address))
   (remote-host [inet-address]
     (.getHostAddress inet-address))
+
   InetSocketAddress
   (port [socket-address]
     (.getPort ^InetSocketAddress socket-address))
@@ -27,6 +35,7 @@
     (local-host (.getAddress ^InetSocketAddress socket-address)))
   (remote-host [socket-address]
     (remote-host (.getAddress ^InetSocketAddress socket-address)))
+
   Channel
   (port [channel]
     (port (.getLocalAddress channel)))
@@ -106,3 +115,21 @@
       (.remove channel-group (.channel ctx)))
     (channelRead [ctx msg]
       )))
+
+(defn create-pipeline-factory
+  [channel-group pipeline-generator]
+  (proxy [ChannelInitializer] []
+    ))
+
+(defn bootstrap
+  ([port options child-options]
+     (let [boss-group (io.netty.channel.nio.NioEventLoopGroup.)
+           worker-group (io.netty.channel.nio.NioEventLoopGroup.)]
+       (try
+         (let [b (doto (io.netty.bootstrap.ServerBootstrap.)
+                   (.group boss-group worker-group)
+                   (.channel NioServerSocketChannel)
+                   (.localAddress 8080))])
+         (finally
+           (.shutdownGracefully boss-group)
+           (.shutdownGracefully worker-group))))))
