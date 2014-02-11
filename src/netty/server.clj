@@ -41,6 +41,11 @@
 (def default-server-options
   {:reuse-addr true
    :keep-alive true
+   :tcp-no-delay true})
+
+(def default-server-child-options
+  {:reuse-addr true
+   :keep-alive true
    :connect-timeout-ms 100
    :tcp-no-delay true})
 
@@ -60,7 +65,9 @@
   ([port options] (bootstrap port options {}))
   ([port options child-options]
      (let [boss-group (NioEventLoopGroup.)
-           worker-group (NioEventLoopGroup.)]
+           worker-group (NioEventLoopGroup.)
+           options (merge default-server-options options)
+           child-options (merge default-server-child-options child-options)]
        (try
          (let [b (doto (ServerBootstrap.)
                    (.group boss-group worker-group)
