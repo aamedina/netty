@@ -37,13 +37,14 @@
 (defn udp-object-socket
   ([] (udp-object-socket nil))
   ([options]
-     (let [name (or (:name options) "udp-socket")]
+     (let [name (or (:name options) "udp-socket")
+           encoder (ObjectEncoder.)
+           decoder (ObjectDecoder. (class-resolver :soft-caching-concurrent))]
        (create-udp-socket
         name
         (fn [_]
           (netty/create-netty-pipeline
            name false nil
-           ;; :encoder (ObjectEncoder.)
-           ;; :decoder (ObjectDecoder.)
-           ))
+           :encoder encoder
+           :decoder decoder))
         (assoc options :auto-encode? false)))))

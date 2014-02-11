@@ -27,8 +27,9 @@
 (defn network-channel->netty-channel
   [])
 
-(defn create-netty-pipeline
-  [pipeline-name server? channel-group & stages])
+(defmacro create-netty-pipeline
+  [pipeline-name server? channel-group & stages]
+  )
 
 (defn current-options
   [])
