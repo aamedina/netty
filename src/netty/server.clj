@@ -9,6 +9,7 @@
            [io.netty.channel.group DefaultChannelGroup]
            [io.netty.bootstrap ServerBootstrap]
            [io.netty.channel.socket.nio NioServerSocketChannel]
+           [io.netty.channel.nio NioEventLoopGroup]
            [java.net InetSocketAddress]))
 
 (def server-options
@@ -32,7 +33,41 @@
    :reuse-addr ChannelOption/SO_REUSEADDR
    :sndbuf ChannelOption/SO_SNDBUF
    :timeout ChannelOption/SO_TIMEOUT
-   :no-delay ChannelOption/TCP_NODELAY
+   :tcp-no-delay ChannelOption/TCP_NODELAY
    :write-buffer-high-water-mark ChannelOption/WRITE_BUFFER_HIGH_WATER_MARK
    :write-buffer-low-water-mark ChannelOption/WRITE_BUFFER_LOW_WATER_MARK
    :write-spin-count ChannelOption/WRITE_SPIN_COUNT})
+
+(def default-server-options
+  {:reuse-addr true
+   :keep-alive true
+   :connect-timeout-ms 100
+   :tcp-no-delay true})
+
+(defn bootstrap
+  ([] (bootstrap 8080))
+  ([port] (bootstrap port {}))
+  ([port options] (bootstrap port options {}))
+  ([port options child-options]
+     (let [boss-group (NioEventLoopGroup.)
+           worker-group (NioEventLoopGroup.)]
+       (try
+         (let [b (doto (ServerBootstrap.)
+                   (.group boss-group worker-group)
+                   (.channel NioServerSocketChannel)
+                   (.localAddress (int port)))
+               f (.sync (.bind b))
+               channel (.channel f)]
+           (.sync (.closeFuture channel)))
+         (finally
+           (.shutdownGracefully boss-group)
+           (.shutdownGracefully worker-group)
+
+           (.sync (.terminationFuture boss-group))
+           (.sync (.terminationFuture worker-group)))))))
+
+(defn start-server
+  [server-name pipeline-generator {:keys [port host] :as options}]
+  (let [exec (netty/cached-thread-executor options)
+        channel-group (DefaultChannelGroup. exec)]
+    channel-group))

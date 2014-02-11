@@ -125,25 +125,3 @@
   (proxy [ChannelInitializer] []
     (initChannel [ch]
       (pipeline-generator channel-group))))
-
-(defn bootstrap
-  ([] (bootstrap 8080))
-  ([port] (bootstrap port {}))
-  ([port options] (bootstrap port options {}))
-  ([port options child-options]
-     (let [boss-group (io.netty.channel.nio.NioEventLoopGroup.)
-           worker-group (io.netty.channel.nio.NioEventLoopGroup.)]
-       (try
-         (let [b (doto (io.netty.bootstrap.ServerBootstrap.)
-                   (.group boss-group worker-group)
-                   (.channel NioServerSocketChannel)
-                   (.localAddress (int port)))
-               f (.sync (.bind b))
-               channel (.channel f)]
-           (.sync (.closeFuture channel)))
-         (finally
-           (.shutdownGracefully boss-group)
-           (.shutdownGracefully worker-group)
-
-           (.sync (.terminationFuture boss-group))
-           (.sync (.terminationFuture worker-group)))))))
