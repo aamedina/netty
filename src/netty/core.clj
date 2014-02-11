@@ -1,7 +1,7 @@
 (ns netty.core
-  (:require [netty.server :as server]
-            [netty.client :as client]
+  (:require [netty.client :as client]
             [netty.redis :as redis :refer [conn wcar]]
+            [netty.format :as fmt]
             [clojure.core.async
              :as a :refer [<! >! go chan put! take! go-loop]])
   (:import [java.util.concurrent ThreadFactory Executor Executors]
@@ -84,18 +84,23 @@
         (recur)))
     port))
 
-(defn network-channel->netty-channel
-  [])
+(defn channel-handler
+  [handlers]
+  (proxy [ChannelHandlerAdapter] []
+    (channelActive [ctx]
+      ((:active handlers) ctx))
+    (channelInactive [ctx]
+      ((:inactive handlers) ctx))
+    (channelRead [ctx msg]
+      ((:read handlers) ctx msg))))
+
+(defn downstream-traffic-handler
+  [pipeline-name]
+  )
 
 (defmacro create-netty-pipeline
   [pipeline-name server? channel-group & stages]
   )
-
-(defn current-options
-  [])
-
-(defn current-channel
-  [])
 
 (defn start-server
   [])
@@ -113,15 +118,18 @@
       (.add channel-group (.channel ctx)))
     (channelInactive [ctx]
       (.remove channel-group (.channel ctx)))
-    (channelRead [ctx msg]
-      )))
+    (channelRead [ctx msg])))
 
-(defn create-pipeline-factory
+(defn create-initializer
   [channel-group pipeline-generator]
   (proxy [ChannelInitializer] []
-    ))
+    (initChannel [ch]
+      (pipeline-generator channel-group))))
 
 (defn bootstrap
+  ([] (bootstrap 8080))
+  ([port] (bootstrap port {}))
+  ([port options] (bootstrap port options {}))
   ([port options child-options]
      (let [boss-group (io.netty.channel.nio.NioEventLoopGroup.)
            worker-group (io.netty.channel.nio.NioEventLoopGroup.)]
@@ -129,7 +137,13 @@
          (let [b (doto (io.netty.bootstrap.ServerBootstrap.)
                    (.group boss-group worker-group)
                    (.channel NioServerSocketChannel)
-                   (.localAddress 8080))])
+                   (.localAddress (int port)))
+               f (.sync (.bind b))
+               channel (.channel f)]
+           (.sync (.closeFuture channel)))
          (finally
            (.shutdownGracefully boss-group)
-           (.shutdownGracefully worker-group))))))
+           (.shutdownGracefully worker-group)
+
+           (.sync (.terminationFuture boss-group))
+           (.sync (.terminationFuture worker-group)))))))
