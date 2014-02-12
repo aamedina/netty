@@ -127,14 +127,14 @@
   [pipeline-name server? channel-group & stages]
   )
 
-(defn start-server
-  [])
-
-(defn server-message-handler
-  [])
-
-(defn create-client
-  [])
+(defmacro pipe->
+  [id channel-group & stages]
+  (let [channel (gensym "channel")
+        pipeline (gensym "pipeline")]
+    `(let [~channel (.find ~channel-group ~id)
+           ~pipeline (.pipeline ~channel)]
+       (-> ~pipeline
+           ~@stages))))
 
 (defn connection-handler
   [pipeline-name channel-group server?]
@@ -150,3 +150,8 @@
   (proxy [ChannelInitializer] []
     (initChannel [ch]
       (pipeline-generator channel-group))))
+
+(defn proxy-handler
+  [handler]
+  (proxy [ChannelHandler] []
+    ))
