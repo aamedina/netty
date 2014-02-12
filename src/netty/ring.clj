@@ -6,12 +6,15 @@
   (:import [io.netty.channel ChannelHandlerContext]
            [io.netty.buffer ByteBufInputStream ByteBufOutputStream]
            [io.netty.handler.codec.http
+            DefaultHttpResponse
             DefaultFullHttpRequest
             HttpHeaders
             HttpMethod
             HttpRequest
             HttpResponse
-            HttpHeaders$Names]
+            HttpHeaders$Names
+            HttpResponseStatus
+            HttpVersion]
            [clojure.core.protocols CollReduce]))
 
 (defprotocol ResponseBody
@@ -36,6 +39,8 @@
 (def methods (static-field-hash-map HttpMethod))
 
 (def headers (static-field-hash-map HttpHeaders$Names))
+
+(def versions (static-field-hash-map HttpVersion))
 
 (defn content-type
   [request]
@@ -76,3 +81,10 @@
   {:status nil
    :headers nil
    :body nil})
+
+(defn write-response
+  [^ChannelHandlerContext ctx response]
+  (let [response (DefaultHttpResponse.
+                   (:http-1-1 versions)
+                   (HttpResponseStatus/valueOf (response :status 200)))]
+    ))
