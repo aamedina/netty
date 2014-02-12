@@ -17,15 +17,15 @@
            [java.net InetSocketAddress]))
 
 (def default-server-options
-  {:reuse-addr true
-   :keep-alive true
-   :tcp-no-delay true})
+  {:so-reuseaddr true
+   :so-keepalive true
+   :tcp-nodelay true})
 
 (def default-server-child-options
-  {:reuse-addr true
-   :keep-alive true
-   :connect-timeout-ms 100
-   :tcp-no-delay true})
+  {:so-reuseaddr true
+   :so-keepalive true
+   :connect-timeout-millis 100
+   :tcp-nodelay true})
 
 (defn set-options!
   [bootstrap options]

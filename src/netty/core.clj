@@ -2,7 +2,8 @@
   (:require [netty.redis :as redis :refer [conn wcar]]
             [netty.format :as fmt]
             [clojure.core.async
-             :as a :refer [<! >! go chan put! take! go-loop]])
+             :as a :refer [<! >! go chan put! take! go-loop]]
+            [netty.util :refer [static-field-hash-map]])
   (:import [java.util.concurrent ThreadFactory Executor Executors]
            [java.net InetSocketAddress InetAddress]
            [io.netty.channel.socket.nio NioServerSocketChannel]
@@ -10,6 +11,7 @@
             Channel
             ChannelHandler
             ChannelHandlerAdapter
+            ChannelHandlerContext
             ChannelInitializer
             ChannelOption
             ChannelPipeline]))
@@ -29,45 +31,29 @@
 
   InetSocketAddress
   (port [socket-address]
-    (.getPort ^InetSocketAddress socket-address))
+    (.getPort socket-address))
   (local-host [socket-address]
-    (local-host (.getAddress ^InetSocketAddress socket-address)))
+    (local-host ^InetAddress (.getAddress socket-address)))
   (remote-host [socket-address]
-    (remote-host (.getAddress ^InetSocketAddress socket-address)))
+    (remote-host ^InetAddress (.getAddress socket-address)))
 
   Channel
   (port [channel]
-    (port (.getLocalAddress channel)))
+    (port ^InetSocketAddress (.localAddress channel)))
   (local-host [channel]
-    (local-host (.getLocalAddress channel)))
+    (local-host ^InetSocketAddress (.localAddress channel)))
   (remote-host [channel]
-    (remote-host (.getRemoteAddress channel))))
+    (remote-host ^InetSocketAddress (.remoteAddress channel)))
 
-(def channel-options
-  {:allocator ChannelOption/ALLOCATOR
-   :allow-half-closure ChannelOption/ALLOW_HALF_CLOSURE
-   :auto-read ChannelOption/AUTO_READ
-   :connect-timeout-ms ChannelOption/CONNECT_TIMEOUT_MILLIS
-   :ip-multicast-addr ChannelOption/IP_MULTICAST_ADDR
-   :ip-multicast-if ChannelOption/IP_MULTICAST_IF
-   :ip-multicast-loop-disabled ChannelOption/IP_MULTICAST_LOOP_DISABLED
-   :ip-multicast-ttl ChannelOption/IP_MULTICAST_TTL
-   :ip-tos ChannelOption/IP_TOS
-   :max-messages-per-read ChannelOption/MAX_MESSAGES_PER_READ
-   :message-size-estimator ChannelOption/MESSAGE_SIZE_ESTIMATOR
-   :rcvbuf-allocator ChannelOption/RCVBUF_ALLOCATOR
-   :backlog ChannelOption/SO_BACKLOG
-   :broadcast ChannelOption/SO_BROADCAST
-   :keep-alive ChannelOption/SO_KEEPALIVE
-   :linger ChannelOption/SO_LINGER
-   :rcvbuf ChannelOption/SO_RCVBUF
-   :reuse-addr ChannelOption/SO_REUSEADDR
-   :sndbuf ChannelOption/SO_SNDBUF
-   :timeout ChannelOption/SO_TIMEOUT
-   :tcp-no-delay ChannelOption/TCP_NODELAY
-   :write-buffer-high-water-mark ChannelOption/WRITE_BUFFER_HIGH_WATER_MARK
-   :write-buffer-low-water-mark ChannelOption/WRITE_BUFFER_LOW_WATER_MARK
-   :write-spin-count ChannelOption/WRITE_SPIN_COUNT})
+  ChannelHandlerContext
+  (port [ctx]
+    (port (.channel ctx)))
+  (local-host [ctx]
+    (local-host (.channel ctx)))
+  (remote-host [ctx]
+    (remote-host (.channel ctx))))
+
+(def channel-options (static-field-hash-map ChannelOption))
 
 (def local-options (ThreadLocal.))
 
@@ -88,18 +74,6 @@
 (defn close-channel! [netty-channel]
   (.close netty-channel))
 
-(defn channel-remote-host-address
-  [])
-
-(defn channel-local-host-name
-  [])
-
-(defn channel-local-port
-  [])
-
-(defn wrap-netty-channel-future
-  [])
-
 (defn wrap-network-channel
   [netty-channel]
   (let [port (chan)]
@@ -119,15 +93,7 @@
     (channelRead [ctx msg]
       ((:read handlers) ctx msg))))
 
-(defn downstream-traffic-handler
-  [pipeline-name]
-  )
-
-(defmacro create-netty-pipeline
-  [pipeline-name server? channel-group & stages]
-  )
-
-(defmacro pipe->
+(defmacro pipeline->
   [id channel-group & stages]
   (let [channel (gensym "channel")
         pipeline (gensym "pipeline")]

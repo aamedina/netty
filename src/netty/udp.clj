@@ -46,7 +46,7 @@
      (let [name (or (:name options) "udp-socket")]
        (create-udp-socket
         name
-        (fn [_] (netty/create-netty-pipeline name false nil))
+        (fn [_] (netty/pipeline-> name false false))
         (assoc options :auto-encode? true)))))
 
 (defn udp-object-socket
@@ -58,8 +58,8 @@
        (create-udp-socket
         name
         (fn [_]
-          (netty/create-netty-pipeline
-           name false nil
+          (netty/pipeline->
+           name false false
            :encoder encoder
            :decoder decoder))
         (assoc options :auto-encode? false)))))

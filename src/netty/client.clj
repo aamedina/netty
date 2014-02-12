@@ -26,9 +26,9 @@
   (java.net.URI. scheme user-info server-name server-port uri query-string ""))
 
 (def default-client-options
-  {:tcp-no-delay true
-   :reuse-addr true
-   :connect-timeout-ms 3000})
+  {:tcp-nodelay true
+   :so-reuseaddr true
+   :connect-timeout-millis 3000})
 
 (def thread-factory
   (letfn [(run [runnable]
